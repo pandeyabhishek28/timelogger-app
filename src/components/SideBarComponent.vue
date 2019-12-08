@@ -1,0 +1,156 @@
+<template>
+    <div class="m-2">
+        <form id="main">
+            <div class="bar">
+              <input type="text" v-model="searchString" placeholder="Enter your search terms" />
+            </div>
+            <div class="scroll">
+             <ul class="sidebarul">
+              <li v-for="(project, index) in Projects" :key="index" class="sidebarulli">
+                 <b-button variant="outline-info" class="list-item-button" pill block fluid v-on:click="setActiveProject(index)">
+                    {{project.projectTitle}}
+                  </b-button>
+                  <ul v-if="activeIndex===index" class="sidebarul">
+                      <li variant="light" v-for="(milestone, milestoneindex) in project.milestones" :key="milestoneindex" class="sidebarulli">
+                          <MilestoneModalComponent v-bind:milestone="milestone" />
+                      </li>
+                  </ul>
+                  </li>
+            </ul>
+            </div>
+        </form>
+    </div>
+</template>
+
+<script>
+import MilestoneModalComponent from "./MilestoneModalComponent.vue";
+import projectApi from "../api/projectApi";
+import store from '../store';
+
+export default {
+  name: "SideBarComponent",
+  components: {
+    MilestoneModalComponent
+  },
+   data(){
+     return {
+        activeIndex:'',
+        searchString:"",
+        isLoading:true
+    }},
+    computed:{
+        Projects: function(){
+          var allProjects=this.getProjects();
+
+         if(this.searchString==="") return allProjects;
+         var self=this;
+         return allProjects.filter(function(project){
+           if(project.projectTitle.toLowerCase().indexOf(self.searchString.toLowerCase())!==-1){
+             return project;
+           }
+           project.milestones.filter(function(milestone){
+              if(milestone.title.toLowerCase().indexOf(self.searchString.toLowerCase())!==-1){
+             return project;
+           }
+           });
+         });
+             
+       }
+    },
+    methods: 
+       {
+      setActiveProject(index){
+          if(this.$data.activeIndex===index)
+              this.$data.activeIndex=''
+          else
+             this.$data.activeIndex=index
+        },
+      getProjects () {
+          this.$data.isLoading = true
+          if(this.$store.state.Projects.length==1){
+            this.$store.state.Projects.pop(1);
+          }
+          if(this.$store.state.Projects.length>1){
+             this.$data.isLoading=false;
+             return this.$store.state.Projects;
+           }
+       
+          projectApi.getAll().then(response=>{
+            this.$data.isLoading = false
+            this.$store.state.Projects= response.data;
+            console.log(response.data);
+            return response.data;
+          }).catch(error=>{
+            console.log(error);
+          });
+     }
+    },
+    store,
+}
+</script>
+
+<style >
+.scroll{
+    min-height: 800px;
+    max-height: 1000px;
+    margin-bottom: 10px;
+    overflow:scroll;
+    -webkit-overflow-scrolling: touch;
+    position:relative;
+}
+.bar{
+    background-color:#5c9bb7;
+    background-image:-webkit-linear-gradient(top, #5c9bb7, #5392ad);
+    background-image:-moz-linear-gradient(top, #5c9bb7, #5392ad);
+    background-image:linear-gradient(top, #5c9bb7, #5392ad);
+    box-shadow: 0 1px 1px #ccc;
+    border-radius: 2px;
+    width: 100%;
+    padding: 10px;
+    margin: 5px auto 5px;
+    position:relative;
+}
+
+.bar input{
+    background:#fff no-repeat 13px 13px;
+    background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAyBpVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADw/eHBhY2tldCBiZWdpbj0i77u/IiBpZD0iVzVNME1wQ2VoaUh6cmVTek5UY3prYzlkIj8+IDx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9IkFkb2JlIFhNUCBDb3JlIDUuMC1jMDYwIDYxLjEzNDc3NywgMjAxMC8wMi8xMi0xNzozMjowMCAgICAgICAgIj4gPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4gPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIgeG1sbnM6eG1wPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvIiB4bWxuczp4bXBNTT0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wL21tLyIgeG1sbnM6c3RSZWY9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9zVHlwZS9SZXNvdXJjZVJlZiMiIHhtcDpDcmVhdG9yVG9vbD0iQWRvYmUgUGhvdG9zaG9wIENTNSBXaW5kb3dzIiB4bXBNTTpJbnN0YW5jZUlEPSJ4bXAuaWlkOkU5NEY0RTlFMTA4NzExRTM5RTEzQkFBQzMyRjkyQzVBIiB4bXBNTTpEb2N1bWVudElEPSJ4bXAuZGlkOkU5NEY0RTlGMTA4NzExRTM5RTEzQkFBQzMyRjkyQzVBIj4gPHhtcE1NOkRlcml2ZWRGcm9tIHN0UmVmOmluc3RhbmNlSUQ9InhtcC5paWQ6RTk0RjRFOUMxMDg3MTFFMzlFMTNCQUFDMzJGOTJDNUEiIHN0UmVmOmRvY3VtZW50SUQ9InhtcC5kaWQ6RTk0RjRFOUQxMDg3MTFFMzlFMTNCQUFDMzJGOTJDNUEiLz4gPC9yZGY6RGVzY3JpcHRpb24+IDwvcmRmOlJERj4gPC94OnhtcG1ldGE+IDw/eHBhY2tldCBlbmQ9InIiPz4DjA/RAAABK0lEQVR42pTSQUdEURjG8dOY0TqmPkGmRcqYD9CmzZAWJRHVRIa0iFYtM6uofYaiEW2SRJtEi9YxIklp07ZkWswu0v/wnByve7vm5ee8M+85zz1jbt9Os+WiGkYdYxjCOx5wgFeXUHmtBSzpcCGa+5BJTCjEP+0nKWAT8xqe4ArPGEEVC1hHEbs2oBwdXkM7mj/JLZrad437sCGHOfUtcziutuYu2v8XUFF/4f6vMK/YgAH1HxkBYV60AR31gxkBYd6xAeF3VzMCwvzOBpypX8V4yuFRzX2d2gD/l5yjH4fYQEnzkj4fae5rJulF2sMXVrAsaTWttRFu4Osb+1jEDT71/ZveyhouTch2fINQL9hKefKjuYFfuznXWzXMTabyrvfyIV3M4vhXgAEAUMs7K0J9UJAAAAAASUVORK5CYII=);
+    border: none;
+    width: 100%;
+    line-height: 20px;
+    padding: 8px 0;
+    border-radius: 2px;
+    box-shadow: 0 2px 8px #c4c4c4 inset;
+    text-align: left;
+    font-size: 14px;
+    font-family: inherit;
+    color: #738289;
+    font-weight: bold;
+    outline: none;
+    text-indent: 40px;
+}
+
+.sidebarul{
+    list-style: none;
+    text-align: left;
+    padding-inline-start: 0px;
+}
+
+.sidebarulli{
+    border-bottom: 1px solid #ddd;
+    overflow: hidden;
+    padding-inline-start: 30px;
+  }
+
+.sidebarulli:before { 
+    content: "";
+    border-color: transparent #111;
+    border-style: solid;
+    border-width: 0.35em 0 0.35em 0.45em;
+    display: block;
+    height: 0;
+    width: 0;
+    left: -1em;
+    top: 0.9em;
+    position: relative;
+}
+</style>
